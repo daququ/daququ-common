@@ -1,5 +1,26 @@
+*~
+target
+.idea
+spring-app-embedded-jetty-mvc.iml
+.classpath
+.project
 *.class
-
+.settings
+jetty-springmvc-jsp-template.iml
+/bin/
+/src/test
+*.xml
+.idea
+*.iml
+*.ipr
+*.iws
+*.gif
+*.jpg
+*.png
+.classpath
+.gitignore
+.project
+/files
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 

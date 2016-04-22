@@ -1,0 +1,129 @@
+package me.daququ.common.core.io;
+
+
+import java.io.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * 原子文件操作操作
+ *
+ */
+public class AtomicFile {
+	static Logger logger = LoggerFactory.getLogger(AtomicFile.class);
+	private final File mBaseName;
+	private final File mBackupName;
+
+	public AtomicFile(File baseName) {
+		this.mBaseName = baseName;
+		this.mBackupName = new File(baseName.getPath() + ".bak");
+	}
+
+	public File getBaseFile() {
+		return this.mBaseName;
+	}
+
+	public void delete() {
+		this.mBaseName.delete();
+		this.mBackupName.delete();
+	}
+
+	public FileOutputStream startWrite() throws IOException {
+		if (this.mBaseName.exists()) {
+			if (!this.mBackupName.exists()) {
+				if (!this.mBaseName.renameTo(this.mBackupName)) {
+					logger.error("Couldn't rename file " + this.mBaseName
+							+ " to backup file " + this.mBackupName);
+				}
+			} else {
+				this.mBaseName.delete();
+			}
+		}
+		FileOutputStream str = null;
+		try {
+			str = new FileOutputStream(this.mBaseName);
+		} catch (FileNotFoundException e) {
+			File parent = this.mBaseName.getParentFile();
+			if (!parent.mkdir())
+				throw new IOException("Couldn't create directory "
+						+ this.mBaseName);
+			try {
+				str = new FileOutputStream(this.mBaseName);
+			} catch (FileNotFoundException e2) {
+				throw new IOException("Couldn't create " + this.mBaseName);
+			}
+		}
+		return str;
+	}
+
+	public void finishWrite(FileOutputStream str) {
+		if (str != null) {
+			sync(str);
+			try {
+				str.close();
+				this.mBackupName.delete();
+			} catch (IOException e) {
+				logger.info("finishWrite: Got exception:", e);
+			}
+		}
+	}
+
+	public void failWrite(FileOutputStream str) {
+		if (str != null) {
+			sync(str);
+			try {
+				str.close();
+				this.mBaseName.delete();
+				this.mBackupName.renameTo(this.mBaseName);
+			} catch (IOException e) {
+				logger.error("failWrite: Got exception:", e);
+			}
+		}
+	}
+
+	public FileInputStream openRead() throws FileNotFoundException {
+		if (this.mBackupName.exists()) {
+			this.mBaseName.delete();
+			this.mBackupName.renameTo(this.mBaseName);
+		}
+		return new FileInputStream(this.mBaseName);
+	}
+
+	public byte[] readFully() throws IOException {
+		FileInputStream stream = openRead();
+		try {
+			int pos = 0;
+			int avail = stream.available();
+			byte[] data = new byte[avail];
+			while (true) {
+				int amt = stream.read(data, pos, data.length - pos);
+
+				if (amt <= 0) {
+					byte[] arrayOfByte1 = data;
+					return arrayOfByte1;
+				}
+				pos += amt;
+				avail = stream.available();
+				if (avail > data.length - pos) {
+					byte[] newData = new byte[pos + avail];
+					System.arraycopy(data, 0, newData, 0, pos);
+					data = newData;
+				}
+			}
+		} finally {
+			stream.close();
+		}
+	}
+
+	static boolean sync(FileOutputStream stream) {
+		try {
+			if (stream != null) {
+				stream.getFD().sync();
+			}
+			return true;
+		} catch (IOException e) {
+		}
+		return false;
+	}
+}
