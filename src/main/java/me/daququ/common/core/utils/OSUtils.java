@@ -1,6 +1,8 @@
 package me.daququ.common.core.utils;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.util.Map;
 
 
 public class OSUtils  {
@@ -166,6 +168,23 @@ public class OSUtils  {
 	  
 	  private static String ourTestUserName;
 
+	  
+	  
+	  public static void clearCache(String host) throws NoSuchFieldException, IllegalAccessException {  
+	        //修改缓存数据开始  
+	        Class clazz = java.net.InetAddress.class;  
+	        final Field cacheField = clazz.getDeclaredField("addressCache");  
+	        cacheField.setAccessible(true);  
+	        final Object obj = cacheField.get(clazz);  
+	        Class cacheClazz = obj.getClass();  
+	        final Field cachePolicyField = cacheClazz.getDeclaredField("type");  
+	        final Field cacheMapField = cacheClazz.getDeclaredField("cache");  
+	        cachePolicyField.setAccessible(true);  
+	        cacheMapField.setAccessible(true);  
+	        final Map cacheMap = (Map)cacheMapField.get(obj);  
+	        System.out.println(JsonUtils.obj2json(cacheMap));  
+	        cacheMap.remove(host);  
+	    }  
  
 
 	  public static String getUserName() {
